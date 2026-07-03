@@ -1,0 +1,11 @@
+{
+  "firestore": {
+    "database": "x2o-database",
+    "location": "asia-southeast3",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "auth": {
+    "providers": {}
+  }
+}
