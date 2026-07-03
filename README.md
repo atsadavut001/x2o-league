@@ -49,7 +49,7 @@ npm run dev
 Default:
 
 ```
-http://localhost:4300/x2o
+http://localhost:4300
 ```
 
 
