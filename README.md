@@ -4,6 +4,12 @@ A modern **Tic-Tac-Toe League** built with **React**, **TypeScript**, **Vite**, 
 
 Players can sign in with Google, compete against a bot in a **Best-of-3** match, and have their statistics and ranking stored in Firebase Firestore.
 
+Demo web : 
+
+```
+https://x2o-league.vercel.app/
+
+```
 ---
 
 # ✨ Features
@@ -50,6 +56,7 @@ Default:
 
 ```
 http://localhost:4300
+
 ```
 
 
