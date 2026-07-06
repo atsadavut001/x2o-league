@@ -23,6 +23,14 @@ export default function BotGame({ user, onComplete }: BotGameProps) {
     const [scores, setScores] = useState({ X: 0, O: 0 });
     const [winner, setWinner] = useState<PlayerSymbol | 'draw' | null>(null);
     const [matchWinner, setMatchWinner] = useState<PlayerSymbol | null>(null);
+    const [showRoundSplash, setShowRoundSplash] = useState(true);
+
+    useEffect(() => {
+        if (showRoundSplash) {
+            const timer = setTimeout(() => setShowRoundSplash(false), 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [showRoundSplash]);
 
     useEffect(() => {
         if (currentTurn === botSymbol && !winner && !matchWinner) {
@@ -67,6 +75,7 @@ export default function BotGame({ user, onComplete }: BotGameProps) {
         const newGamesPlayed = gamesPlayed + 1;
         setGamesPlayed(newGamesPlayed);
         setCurrentTurn(newGamesPlayed % 2 === 0 ? 'X' : 'O');
+        setShowRoundSplash(true);
     };
 
     const updateUserStats = async (playerSymbol: PlayerSymbol, matchWinner: PlayerSymbol | 'draw') => {
@@ -83,8 +92,8 @@ export default function BotGame({ user, onComplete }: BotGameProps) {
                 user.winsBotCount += 1;
                 user.wins += 1;
 
-                if(user.winsBotCount >= 3) {
-                    winPointsIncrement += 1; 
+                if (user.winsBotCount >= 3) {
+                    winPointsIncrement += 1;
                     user.winsBotCount = 0;
                 }
             }
@@ -98,7 +107,7 @@ export default function BotGame({ user, onComplete }: BotGameProps) {
                 user.winsBotCount = 0;
                 user.losses += 1;
             }
-            
+
             const updates: any = {
                 rankPoints: increment(winPointsIncrement),
                 winsBotCount: user.winsBotCount,
@@ -112,16 +121,34 @@ export default function BotGame({ user, onComplete }: BotGameProps) {
         }
     };
 
+    if (showRoundSplash) {
+        return (
+            <div className="flex-1 flex flex-col items-center justify-center bg-white/5 rounded-3xl border border-white/5 relative shadow-inner overflow-hidden w-full max-w-3xl mx-auto p-4 sm:p-8">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-cyan-500/10 blur-[120px] rounded-full pointer-events-none"></div>
+                <div className="z-10 animate-in zoom-in fade-in duration-300">
+                    <h2 className="text-4xl sm:text-6xl font-black uppercase tracking-widest text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]">
+                        Round {gamesPlayed + 1}
+                    </h2>
+                </div>
+            </div>
+        );
+    }
     return (
         <div className="flex-1 flex flex-col items-center justify-center bg-white/5 rounded-3xl border border-white/5 relative shadow-inner overflow-hidden w-full max-w-3xl mx-auto p-4 sm:p-8">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-cyan-500/10 blur-[120px] rounded-full pointer-events-none"></div>
-
             <div className="flex items-center gap-6 sm:gap-12 mb-8 sm:mb-10 z-10 w-full justify-center">
                 <div className={`text-center w-24 transition-opacity duration-300 ${currentTurn === playerSymbol && !winner && !matchWinner ? 'opacity-100' : 'opacity-50'}`}>
                     <div className="text-[10px] text-slate-400 uppercase mb-1 tracking-widest font-bold">You ({playerSymbol})</div>
                     <div className={`text-4xl sm:text-5xl font-black drop-shadow-[0_0_10px_currentColor] ${playerSymbol === 'X' ? 'text-cyan-400' : 'text-rose-500'}`}>{scores[playerSymbol as 'X' | 'O']}</div>
                 </div>
-                <div className="px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-[10px] font-bold uppercase tracking-widest text-slate-400 italic shadow-inner">Best of 3</div>
+                <div >
+                    <h2 className="text-2xl sm:text-2xl font-black uppercase tracking-widest text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] mb-2">
+                        Round {gamesPlayed + 1}
+                    </h2>
+                    <div className="px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-[10px] font-bold uppercase tracking-widest text-slate-400 italic shadow-inner text-center ">
+                        Best of 3
+                    </div>
+                </div>
                 <div className={`text-center w-24 transition-opacity duration-300 ${currentTurn === botSymbol && !winner && !matchWinner ? 'opacity-100' : 'opacity-50'}`}>
                     <div className="text-[10px] text-slate-400 uppercase mb-1 tracking-widest font-bold">Bot ({botSymbol})</div>
                     <div className={`text-4xl sm:text-5xl font-black drop-shadow-[0_0_10px_currentColor] ${botSymbol === 'X' ? 'text-cyan-400' : 'text-rose-500'}`}>{scores[botSymbol as 'X' | 'O']}</div>
