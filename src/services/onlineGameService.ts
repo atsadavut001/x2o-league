@@ -171,7 +171,6 @@ export async function quickMatchmake(user: UserProfile): Promise<RoomData> {
   if (availableRooms.length > 0) {
     // Join the first available room
     const targetRoomDoc = availableRooms[0];
-    const roomData = targetRoomDoc.data() as RoomData;
 
     await updateDoc(doc(db, 'rooms', targetRoomDoc.id), {
       playerO: user.uid,
@@ -256,6 +255,7 @@ export async function makeOnlineMove(roomId: string, index: number, userId: stri
       scores: newScores,
       winner: newWinner,
       matchWinner: newMatchWinner,
+      status: newMatchWinner ? 'finished' : 'playing',
       lastActivity: serverTimestamp()
     });
 

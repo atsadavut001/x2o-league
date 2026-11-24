@@ -16,7 +16,7 @@ export const OnlineLobby: React.FC<OnlineLobbyProps> = ({ user, onRoomJoined, on
 
   // Quick matchmaking timeout / animation effect
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     if (matching) {
       timer = setTimeout(async () => {
         try {
@@ -28,7 +28,9 @@ export const OnlineLobby: React.FC<OnlineLobbyProps> = ({ user, onRoomJoined, on
         }
       }, 1500);
     }
-    return () => clearTimeout(timer);
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [matching, user, onRoomJoined]);
 
   const handleCreateRoom = async () => {

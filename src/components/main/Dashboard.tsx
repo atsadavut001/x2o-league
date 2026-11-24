@@ -7,8 +7,8 @@ import './Dashboard.css';
 export default function Dashboard() {
     const navigate = useNavigate();
     const cards = [
-        { id: 'bot', title: 'Practice vs Bot', subtitle: 'Improve your strategy', icon: Bot, highlight: true, path: '/game/bot' },
-        // { id: 'ranked_matchmaking', title: 'Ranked Online Match', subtitle: 'Live Pool', icon: Globe, highlight: false, path: '/game/online' },
+        { id: 'ranked_matchmaking', title: 'Online PvP Match', subtitle: 'Real-time 2-Player • Quick Match & Room Code', icon: Globe, highlight: true, path: '/game/online' },
+        { id: 'bot', title: 'Practice vs Bot', subtitle: 'Improve your strategy', icon: Bot, highlight: false, path: '/game/bot' },
         // { id: 'room_setup', title: 'Custom Lobby', subtitle: 'Create Room / Local Play', icon: Users, highlight: false, path: '/game/custom' },
         // { id: 'local', title: 'Local Pass & Play', subtitle: 'Same device multiplayer', icon: Monitor, highlight: false, path: '/game/local' },
         { id: 'leaderboard', title: 'Global Rankings', subtitle: 'View top players', icon: Trophy, highlight: false, path: '/leaderboard' }
