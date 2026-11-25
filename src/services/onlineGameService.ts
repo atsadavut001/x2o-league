@@ -18,6 +18,7 @@ import { db } from '../config/firebase';
 import { PlayerSymbol } from '../interfaces/types';
 import { UserProfile } from '../interfaces/UserProfile.interface';
 import { checkWinner } from '../utils';
+import { getPlayerTier } from '../utils/rankingUtils';
 
 // Interfaces for online rooms and matchmaking
 export interface RoomData {
@@ -32,12 +33,14 @@ export interface RoomData {
     displayName: string;
     photoURL: string;
     rankPoints: number;
+    rankTier?: string;
   };
   playerOProfile?: {
     uid: string;
     displayName: string;
     photoURL: string;
     rankPoints: number;
+    rankTier?: string;
   } | null;
   board: PlayerSymbol[]; // Array of 9 elements: 'X', 'O', or null
   currentTurn: 'X' | 'O';
@@ -57,6 +60,7 @@ export interface MatchmakingTicket {
   displayName: string;
   photoURL: string;
   rankPoints: number;
+  rankTier?: string;
   createdAt: Timestamp | any;
 }
 
@@ -78,6 +82,8 @@ export function generateRoomCode(): string {
 export async function createRoom(user: UserProfile): Promise<RoomData> {
   const roomId = doc(collection(db, 'rooms')).id;
   const roomCode = generateRoomCode();
+  const currentPoints = user.rankPoints || 0;
+  const currentTier = getPlayerTier(currentPoints).id;
 
   const newRoom: RoomData = {
     id: roomId,
@@ -90,7 +96,8 @@ export async function createRoom(user: UserProfile): Promise<RoomData> {
       uid: user.uid,
       displayName: user.displayName || 'Player X',
       photoURL: user.photoURL || '',
-      rankPoints: user.rankPoints || 0
+      rankPoints: currentPoints,
+      rankTier: currentTier
     },
     playerOProfile: null,
     board: Array(9).fill(null),
@@ -134,6 +141,9 @@ export async function joinRoomByCode(roomCode: string, user: UserProfile): Promi
     throw new Error('ห้องนี้มีผู้เล่นครบ 2 คนแล้ว');
   }
 
+  const currentPoints = user.rankPoints || 0;
+  const currentTier = getPlayerTier(currentPoints).id;
+
   // Update room with playerO joining
   const updatedRoom: Partial<RoomData> = {
     playerO: user.uid,
@@ -141,7 +151,8 @@ export async function joinRoomByCode(roomCode: string, user: UserProfile): Promi
       uid: user.uid,
       displayName: user.displayName || 'Player O',
       photoURL: user.photoURL || '',
-      rankPoints: user.rankPoints || 0
+      rankPoints: currentPoints,
+      rankTier: currentTier
     },
     status: 'playing',
     lastActivity: serverTimestamp()
@@ -168,6 +179,9 @@ export async function quickMatchmake(user: UserProfile): Promise<RoomData> {
   const snapshot = await getDocs(q);
   const availableRooms = snapshot.docs.filter(docSnap => docSnap.data().hostId !== user.uid);
 
+  const currentPoints = user.rankPoints || 0;
+  const currentTier = getPlayerTier(currentPoints).id;
+
   if (availableRooms.length > 0) {
     // Join the first available room
     const targetRoomDoc = availableRooms[0];
@@ -178,7 +192,8 @@ export async function quickMatchmake(user: UserProfile): Promise<RoomData> {
         uid: user.uid,
         displayName: user.displayName || 'Player O',
         photoURL: user.photoURL || '',
-        rankPoints: user.rankPoints || 0
+        rankPoints: currentPoints,
+        rankTier: currentTier
       },
       status: 'playing',
       lastActivity: serverTimestamp()
@@ -259,9 +274,8 @@ export async function makeOnlineMove(roomId: string, index: number, userId: stri
       lastActivity: serverTimestamp()
     });
 
-    // If match is won, update user rank statistics
+    // If match is won, update user rank statistics and calculate new tier automatically
     if (newMatchWinner) {
-      // We can update stats outside or handle stats logging
       setTimeout(() => {
         updateOnlineMatchStats(room, newMatchWinner).catch(console.error);
       }, 100);
@@ -359,7 +373,7 @@ export async function leaveRoom(roomId: string, userId: string): Promise<void> {
 }
 
 /**
- * Updates user rank points and win/loss/draw statistics upon match completion.
+ * Updates user rank points, stats, and automatically calculates the new Rank Tier upon match completion.
  */
 async function updateOnlineMatchStats(room: RoomData, matchWinner: PlayerSymbol | 'draw'): Promise<void> {
   if (!room.playerX || !room.playerO) return;
@@ -374,13 +388,29 @@ async function updateOnlineMatchStats(room: RoomData, matchWinner: PlayerSymbol 
     const isOWinner = matchWinner === 'O';
     const isDraw = matchWinner === 'draw';
 
+    const playerXData = playerXSnap.data() as UserProfile;
+    const playerOData = playerOSnap.data() as UserProfile;
+
+    // Calculate new points with floor of 0 (no negative total points)
+    const currentXPts = playerXData.rankPoints || 0;
+    const pointDeltaX = isXWinner ? 25 : isOWinner ? -10 : 5; // e.g., +25 win, -10 loss, +5 draw
+    const newXPts = Math.max(0, currentXPts + pointDeltaX);
+    const newXTier = getPlayerTier(newXPts).id;
+
+    const currentOPts = playerOData.rankPoints || 0;
+    const pointDeltaO = isOWinner ? 25 : isXWinner ? -10 : 5;
+    const newOPts = Math.max(0, currentOPts + pointDeltaO);
+    const newOTier = getPlayerTier(newOPts).id;
+
     // Player X updates
     await updateDoc(playerXRef, {
       totalGames: increment(1),
       wins: increment(isXWinner ? 1 : 0),
       losses: increment(isOWinner ? 1 : 0),
       draws: increment(isDraw ? 1 : 0),
-      rankPoints: increment(isXWinner ? 2 : isOWinner ? -1 : 0)
+      rankPoints: newXPts,
+      rankTier: newXTier,
+      updatedAt: serverTimestamp()
     });
 
     // Player O updates
@@ -389,7 +419,9 @@ async function updateOnlineMatchStats(room: RoomData, matchWinner: PlayerSymbol 
       wins: increment(isOWinner ? 1 : 0),
       losses: increment(isXWinner ? 1 : 0),
       draws: increment(isDraw ? 1 : 0),
-      rankPoints: increment(isOWinner ? 2 : isXWinner ? -1 : 0)
+      rankPoints: newOPts,
+      rankTier: newOTier,
+      updatedAt: serverTimestamp()
     });
   }
 }
